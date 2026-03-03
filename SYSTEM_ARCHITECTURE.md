@@ -1,0 +1,640 @@
+# NeuroPath System Architecture
+
+## 🏗️ High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER INTERFACE                          │
+│                    (React + TypeScript)                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │  Login/  │  │   Quiz   │  │  Coding  │  │  Admin   │      │
+│  │ Register │  │  System  │  │ Platform │  │  Panel   │      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │Dashboard │  │ Profile  │  │ Support  │  │Analytics │      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              ↕
+                         REST API
+                              ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                      APPLICATION LAYER                          │
+│                   (Express + Node.js)                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │   Auth   │  │   Quiz   │  │   SAFA   │  │Analytics │      │
+│  │   APIs   │  │   APIs   │  │   APIs   │  │   APIs   │      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │  Video   │  │  Coding  │  │Proctoring│  │  Admin   │      │
+│  │   APIs   │  │   APIs   │  │   APIs   │  │   APIs   │      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              ↕
+                      Database Layer
+                              ↕
+┌─────────────────────────────────────────────────────────────────┐
+│                       DATA LAYER                                │
+│              (MongoDB Atlas / SQLite)                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │ students │  │  quiz    │  │emotional │  │proctoring│      │
+│  │          │  │ results  │  │  states  │  │violations│      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
+│  │   safa   │  │   safa   │  │analytics │  │  video   │      │
+│  │ mastery  │  │ attempts │  │ reports  │  │   recs   │      │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Data Flow Diagram
+
+### Quiz Submission Flow
+
+```
+┌─────────┐
+│ Student │
+│  Takes  │
+│  Quiz   │
+└────┬────┘
+     │
+     ↓
+┌─────────────────┐
+│ Submit Answers  │
+│  + Metadata     │
+└────┬────────────┘
+     │
+     ↓
+┌─────────────────┐
+│  SAFA Engine    │
+│  - Analyze      │
+│  - Classify     │
+│  - Generate     │
+└────┬────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │ Save Results │
+     │    │  to Database │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │  Calculate   │
+     │    │   Mastery    │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │  Generate    │
+     │    │  Feedback    │
+     │    └──────────────┘
+     │
+     └──→ ┌──────────────┐
+          │   Update     │
+          │  Dashboard   │
+          └──────────────┘
+```
+
+### Learning Analytics Flow
+
+```
+┌─────────────┐
+│   Student   │
+│  Behavior   │
+│    Data     │
+└──────┬──────┘
+       │
+       ↓
+┌──────────────────┐
+│ Analytics Engine │
+│  - Collect Data  │
+│  - Analyze       │
+│  - Detect Issues │
+└──────┬───────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │  Calculate  │
+       │    │Health Score │
+       │    └─────────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │  Identify   │
+       │    │  Problems   │
+       │    └─────────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │  Generate   │
+       │    │Action Plans │
+       │    └─────────────┘
+       │
+       └──→ ┌─────────────┐
+            │   Create    │
+            │   Report    │
+            └─────────────┘
+```
+
+### Video Recommendation Flow
+
+```
+┌──────────────┐
+│   Student    │
+│ Performance  │
+│     Data     │
+└──────┬───────┘
+       │
+       ↓
+┌──────────────────┐
+│  Recommendation  │
+│     Engine       │
+│  - Analyze Gaps  │
+│  - Search Videos │
+└──────┬───────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │   YouTube   │
+       │    │  API Search │
+       │    └─────────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │    Rank     │
+       │    │   Videos    │
+       │    └─────────────┘
+       │
+       ├──→ ┌─────────────┐
+       │    │  Generate   │
+       │    │ Study Plan  │
+       │    └─────────────┘
+       │
+       └──→ ┌─────────────┐
+            │   Display   │
+            │    to User  │
+            └─────────────┘
+```
+
+---
+
+## 🧩 Component Architecture
+
+### Frontend Components
+
+```
+App.tsx (Main Component)
+│
+├── Authentication
+│   ├── Login
+│   ├── Register
+│   └── FaceCapture
+│
+├── Dashboard
+│   ├── Overview
+│   ├── Stats
+│   ├── Progress
+│   └── Recommendations
+│
+├── Quiz System
+│   ├── QuestionDisplay
+│   ├── AnswerInput
+│   ├── Timer
+│   ├── Proctoring
+│   └── Results
+│
+├── Coding Platform
+│   ├── ProblemList
+│   ├── ProblemDescription
+│   ├── CodeEditor
+│   ├── OutputPanel
+│   └── TestResults
+│
+├── Profile
+│   ├── PersonalInfo
+│   ├── Statistics
+│   ├── SkillAnalysis
+│   └── StudyPlan
+│
+├── Analytics
+│   ├── HealthReport
+│   ├── ProblemDetection
+│   ├── ActionPlans
+│   └── ProgressCharts
+│
+├── Support
+│   ├── Suggestions
+│   ├── LiveChat
+│   └── FAQ
+│
+└── Admin Panel
+    ├── StudentList
+    ├── StudentDetails
+    ├── Analytics
+    └── EmotionalSummary
+```
+
+### Backend Modules
+
+```
+Server (Express)
+│
+├── Routes
+│   ├── /api/auth
+│   ├── /api/quiz
+│   ├── /api/safa
+│   ├── /api/analytics
+│   ├── /api/recommendations
+│   ├── /api/proctoring
+│   └── /api/admin
+│
+├── Controllers
+│   ├── AuthController
+│   ├── QuizController
+│   ├── SAFAController
+│   ├── AnalyticsController
+│   ├── VideoController
+│   └── AdminController
+│
+├── Services
+│   ├── SAFAAlgorithm
+│   ├── AnalyticsAI
+│   ├── VideoRecommendation
+│   └── AdaptiveLearning
+│
+├── Models (Mongoose)
+│   ├── Student
+│   ├── QuizResult
+│   ├── EmotionalState
+│   ├── SAFAMastery
+│   ├── AnalyticsReport
+│   └── VideoRecommendation
+│
+└── Middleware
+    ├── Authentication
+    ├── Validation
+    ├── ErrorHandler
+    └── Logger
+```
+
+---
+
+## 🔐 Security Architecture
+
+```
+┌─────────────────────────────────────────┐
+│          Security Layers                │
+├─────────────────────────────────────────┤
+│                                         │
+│  Layer 1: Transport Security            │
+│  ┌─────────────────────────────────┐   │
+│  │  HTTPS / TLS Encryption         │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  Layer 2: Authentication                │
+│  ┌─────────────────────────────────┐   │
+│  │  Password Hashing (bcryptjs)    │   │
+│  │  Session Management             │   │
+│  │  Face Descriptor Encryption     │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  Layer 3: Authorization                 │
+│  ┌─────────────────────────────────┐   │
+│  │  Role-Based Access Control      │   │
+│  │  Route Protection               │   │
+│  │  Resource Permissions           │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  Layer 4: Data Protection               │
+│  ┌─────────────────────────────────┐   │
+│  │  Input Validation               │   │
+│  │  SQL Injection Prevention       │   │
+│  │  XSS Protection                 │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  Layer 5: Monitoring                    │
+│  ┌─────────────────────────────────┐   │
+│  │  Error Logging                  │   │
+│  │  Activity Tracking              │   │
+│  │  Anomaly Detection              │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 📊 Database Schema Relationships
+
+```
+┌──────────┐
+│ students │
+└────┬─────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │ quizresults  │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │emotional     │
+     │    │states        │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │proctoring    │
+     │    │violations    │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │safa concept  │
+     │    │masteries     │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │safa answer   │
+     │    │attempts      │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │safa feedback │
+     │    │logs          │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │safa revision │
+     │    │queues        │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │learning      │
+     │    │analytics     │
+     │    └──────────────┘
+     │
+     ├──→ ┌──────────────┐
+     │    │video         │
+     │    │recommendations│
+     │    └──────────────┘
+     │
+     └──→ ┌──────────────┐
+          │video watch   │
+          │histories     │
+          └──────────────┘
+```
+
+---
+
+## 🔄 Request/Response Flow
+
+### Typical API Request Flow
+
+```
+┌─────────┐
+│ Browser │
+└────┬────┘
+     │ 1. HTTP Request
+     ↓
+┌─────────────┐
+│   Express   │
+│   Server    │
+└────┬────────┘
+     │ 2. Route Matching
+     ↓
+┌─────────────┐
+│ Middleware  │
+│  - Auth     │
+│  - Validate │
+└────┬────────┘
+     │ 3. Validation
+     ↓
+┌─────────────┐
+│ Controller  │
+│  - Process  │
+│  - Logic    │
+└────┬────────┘
+     │ 4. Business Logic
+     ↓
+┌─────────────┐
+│  Service    │
+│  - SAFA     │
+│  - Analytics│
+└────┬────────┘
+     │ 5. Algorithm Processing
+     ↓
+┌─────────────┐
+│  Database   │
+│  - Query    │
+│  - Save     │
+└────┬────────┘
+     │ 6. Data Operations
+     ↓
+┌─────────────┐
+│  Response   │
+│  - Format   │
+│  - Send     │
+└────┬────────┘
+     │ 7. HTTP Response
+     ↓
+┌─────────┐
+│ Browser │
+└─────────┘
+```
+
+---
+
+## 🚀 Deployment Architecture
+
+### Production Deployment
+
+```
+┌─────────────────────────────────────────┐
+│            CDN (CloudFlare)             │
+│         Static Assets Delivery          │
+└────────────────┬────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────┐
+│        Frontend (Vercel/Netlify)        │
+│         React Application               │
+└────────────────┬────────────────────────┘
+                 │
+                 ↓ REST API
+┌─────────────────────────────────────────┐
+│      Backend (Railway/Heroku)           │
+│         Express Server                  │
+└────────────────┬────────────────────────┘
+                 │
+                 ↓
+┌─────────────────────────────────────────┐
+│      Database (MongoDB Atlas)           │
+│         Cloud Database                  │
+└─────────────────────────────────────────┘
+```
+
+### Scaling Architecture
+
+```
+┌─────────────┐
+│Load Balancer│
+└──────┬──────┘
+       │
+       ├──→ ┌──────────┐
+       │    │ Server 1 │
+       │    └──────────┘
+       │
+       ├──→ ┌──────────┐
+       │    │ Server 2 │
+       │    └──────────┘
+       │
+       └──→ ┌──────────┐
+            │ Server 3 │
+            └──────────┘
+                 │
+                 ↓
+       ┌─────────────────┐
+       │  Redis Cache    │
+       └─────────────────┘
+                 │
+                 ↓
+       ┌─────────────────┐
+       │MongoDB Cluster  │
+       │  - Primary      │
+       │  - Secondary    │
+       │  - Secondary    │
+       └─────────────────┘
+```
+
+---
+
+## 🔍 Monitoring Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Application Monitoring          │
+├─────────────────────────────────────────┤
+│                                         │
+│  ┌─────────────┐  ┌─────────────┐     │
+│  │   Logging   │  │   Metrics   │     │
+│  │  (Winston)  │  │(Prometheus) │     │
+│  └─────────────┘  └─────────────┘     │
+│                                         │
+│  ┌─────────────┐  ┌─────────────┐     │
+│  │    Error    │  │Performance  │     │
+│  │  Tracking   │  │  Monitoring │     │
+│  │  (Sentry)   │  │ (New Relic) │     │
+│  └─────────────┘  └─────────────┘     │
+│                                         │
+│  ┌─────────────┐  ┌─────────────┐     │
+│  │  Database   │  │   Uptime    │     │
+│  │ Monitoring  │  │  Monitoring │     │
+│  │  (MongoDB)  │  │(UptimeRobot)│     │
+│  └─────────────┘  └─────────────┘     │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Technology Stack Diagram
+
+```
+┌─────────────────────────────────────────┐
+│            FRONTEND STACK               │
+├─────────────────────────────────────────┤
+│  React 19.0.0                           │
+│  TypeScript 5.8.2                       │
+│  Tailwind CSS 4.1.14                    │
+│  Framer Motion 12.23.24                 │
+│  Vite 6.2.0                             │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│            BACKEND STACK                │
+├─────────────────────────────────────────┤
+│  Node.js                                │
+│  Express 4.21.2                         │
+│  MongoDB 7.1.0                          │
+│  Mongoose 9.2.3                         │
+│  bcryptjs                               │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│             AI/ML STACK                 │
+├─────────────────────────────────────────┤
+│  TensorFlow.js 4.22.0                   │
+│  face-api.js 0.22.2                     │
+│  Custom SAFA Algorithm                  │
+│  Custom Analytics AI                    │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│          EXTERNAL SERVICES              │
+├─────────────────────────────────────────┤
+│  YouTube Data API                       │
+│  Google APIs                            │
+│  MongoDB Atlas                          │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 📦 Build & Deployment Pipeline
+
+```
+┌─────────────┐
+│   Source    │
+│    Code     │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│     Git     │
+│   Commit    │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│   GitHub    │
+│ Repository  │
+└──────┬──────┘
+       │
+       ↓
+┌─────────────┐
+│     CI      │
+│   Build     │
+│   & Test    │
+└──────┬──────┘
+       │
+       ├──→ ┌──────────┐
+       │    │  Lint    │
+       │    └──────────┘
+       │
+       ├──→ ┌──────────┐
+       │    │  Test    │
+       │    └──────────┘
+       │
+       └──→ ┌──────────┐
+            │  Build   │
+            └────┬─────┘
+                 │
+                 ↓
+       ┌─────────────────┐
+       │     Deploy      │
+       │  - Frontend     │
+       │  - Backend      │
+       └─────────────────┘
+```
+
+---
+
+**This architecture supports:**
+- ✅ Scalability
+- ✅ Maintainability
+- ✅ Security
+- ✅ Performance
+- ✅ Reliability
