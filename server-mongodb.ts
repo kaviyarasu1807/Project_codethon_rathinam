@@ -960,7 +960,11 @@ async function startServer() {
   // Add new video suggestion (Admin)
   app.post("/api/admin/videos", async (req, res) => {
     try {
+      console.log('📥 POST /api/admin/videos - Request received');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      
       if (!mongoConnected) {
+        console.error('❌ MongoDB not connected');
         return res.status(503).json({ 
           success: false, 
           error: "Database not connected. Please check MongoDB connection." 
@@ -972,8 +976,11 @@ async function startServer() {
         difficulty_level, concepts, domain, category, tags, created_by
       } = req.body;
 
+      console.log('Extracted fields:', { title, description, video_url, difficulty_level, domain, created_by });
+
       // Validate required fields
       if (!title || !description || !video_url || !difficulty_level || !domain) {
+        console.error('❌ Missing required fields');
         return res.status(400).json({
           success: false,
           error: 'Missing required fields: title, description, video_url, difficulty_level, domain'
@@ -982,14 +989,24 @@ async function startServer() {
 
       // Validate difficulty level
       if (!['beginner', 'intermediate', 'advanced'].includes(difficulty_level)) {
+        console.error('❌ Invalid difficulty level:', difficulty_level);
         return res.status(400).json({
           success: false,
           error: 'Invalid difficulty_level. Must be: beginner, intermediate, or advanced'
         });
       }
 
+      // Validate created_by
+      if (!created_by) {
+        console.error('❌ Missing created_by field');
+        return res.status(400).json({
+          success: false,
+          error: 'Missing created_by field (admin ID required)'
+        });
+      }
+
       // Create video suggestion
-      const videoSuggestion = new AdminVideoSuggestion({
+      const videoData = {
         title: title.trim(),
         description: description.trim(),
         video_url: video_url.trim(),
@@ -1004,11 +1021,17 @@ async function startServer() {
         is_active: true,
         view_count: 0,
         rating: 0
-      });
+      };
 
+      console.log('Creating video with data:', JSON.stringify(videoData, null, 2));
+
+      const videoSuggestion = new AdminVideoSuggestion(videoData);
+
+      console.log('Saving to database...');
       const savedVideo = await videoSuggestion.save();
+      console.log('✅ Video saved successfully:', savedVideo._id);
 
-      res.status(201).json({
+      const response = {
         success: true,
         videoId: savedVideo._id.toString(),
         video: {
@@ -1030,15 +1053,31 @@ async function startServer() {
           rating: savedVideo.rating
         },
         message: 'Video suggestion added successfully'
-      });
+      };
+
+      console.log('📤 Sending response:', response.success);
+      res.status(201).json(response);
     } catch (error: any) {
-      console.error("Failed to add video suggestion:", error);
+      console.error("❌ Failed to add video suggestion:");
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      console.error("Full error:", error);
       
       // Handle duplicate key error
       if (error.code === 11000) {
         return res.status(409).json({ 
           success: false, 
           error: "A video with this URL already exists" 
+        });
+      }
+
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map((e: any) => e.message).join(', ');
+        return res.status(400).json({ 
+          success: false, 
+          error: `Validation error: ${validationErrors}` 
         });
       }
       

@@ -232,7 +232,7 @@ const adminVideoSuggestionSchema = new mongoose.Schema({
   domain: { type: String, required: true },
   category: { type: String, default: 'Tutorial' },
   tags: { type: [String], default: [] },
-  created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+  created_by: { type: mongoose.Schema.Types.Mixed, required: true }, // Accept both number and ObjectId
   is_active: { type: Boolean, default: true },
   view_count: { type: Number, default: 0 },
   rating: { type: Number, default: 0 },

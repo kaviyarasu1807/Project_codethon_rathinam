@@ -164,7 +164,8 @@ export default function AdminVideoSuggestions({ adminId }: AdminVideoSuggestions
 
       // Get response text first
       const responseText = await res.text();
-      console.log('Server response:', res.status, responseText);
+      console.log('Server response status:', res.status);
+      console.log('Server response body:', responseText);
 
       // Check if response is ok
       if (!res.ok) {
@@ -176,14 +177,21 @@ export default function AdminVideoSuggestions({ adminId }: AdminVideoSuggestions
         if (res.status === 400) {
           try {
             const errorData = JSON.parse(responseText);
-            showMessage('error', `Validation error: ${errorData.error || 'Invalid data'}`);
+            showMessage('error', `❌ ${errorData.error || 'Invalid data'}`);
           } catch {
-            showMessage('error', `Validation error: ${responseText || 'Invalid data'}`);
+            showMessage('error', `❌ Validation error: ${responseText || 'Invalid data'}`);
           }
           return;
         }
 
-        showMessage('error', `Server error (${res.status}): ${responseText || 'Unknown error'}`);
+        // For 500 errors, try to parse the error message
+        try {
+          const errorData = JSON.parse(responseText);
+          showMessage('error', `❌ Server error: ${errorData.error || 'Unknown error'}`);
+          console.error('Server error details:', errorData);
+        } catch {
+          showMessage('error', `❌ Server error (${res.status}): ${responseText || 'Check server logs'}`);
+        }
         return;
       }
 
