@@ -152,8 +152,7 @@ class CognitiveTwinModel:
             objective='multi:softprob',
             num_class=3,
             eval_metric='mlogloss',
-            random_state=42,
-            use_label_encoder=False
+            random_state=42
         )
         print("   ✓ Base model initialized")
         
@@ -169,12 +168,8 @@ class CognitiveTwinModel:
             verbose=1
         )
         
-        grid_search.fit(
-            X_train, y_train,
-            eval_set=[(X_test, y_test)],
-            early_stopping_rounds=10,
-            verbose=False
-        )
+        # Fit without early_stopping_rounds for compatibility with newer XGBoost
+        grid_search.fit(X_train, y_train)
         
         self.model = grid_search.best_estimator_
         
